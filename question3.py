@@ -35,6 +35,14 @@ def frag(total_data: pd.DataFrame, data: pd.DataFrame, slices: int = 4):
 
     return {"Intervalo de valores": labels, "Quantidade de compras": chunk}
 
+def save_plot(filename: str):
+    figure = plt.gcf()
+    figure.set_size_inches(18, 10)
+    fig_path = Path.cwd() / filename
+    plt.savefig(fig_path, dpi=100)
+    print(f"Gráfico de barras de gastos por usuário por gênero {fig_path}")
+    plt.close()
+    return fig_path
 
 df = pd.read_json(Path.cwd() / "dados_compras.json")
 
@@ -61,7 +69,7 @@ for gender in df["Sexo"].unique():
 
     total_solo_gender[gender] = len(df_solo_gender)
 
-    slices = 9 # Using Sturge
+    slices = 3
     df2_solo_gender = frag(df, df_solo_gender, slices)
     df2_solo_gender["Sexo"] = [gender] * slices
     df2_solo_gender = pd.DataFrame(df2_solo_gender)
@@ -72,10 +80,7 @@ for gender in df["Sexo"].unique():
         df2 = df2_solo_gender.merge(df2, how='outer')
 
 sbn.barplot(df2, x="Intervalo de valores", y="Quantidade de compras", hue="Sexo", ).set(title="Distribuição de compras por gênero")
-figure = plt.gcf() # get current figure
-figure.set_size_inches(18, 10)
-df2_path = Path.cwd() / "Gráfico de barras.png"
-plt.savefig(df2_path, dpi=100)
+df2_path = save_plot("Gráfico de barras - Compras.png")
 
 # Clients by gender
 df3 = df[["Sexo", "Login"]]
@@ -109,4 +114,21 @@ print("")
 print("Gasto total por gênero:")
 print(df4.to_string())
 print("")
-print(f"Gráfico de barras de compras por faixa de valor para cada gênero salvo em {df2_path}")
+print(f"Gráfico de barras de compras por faixa de valor para cada gênero salvo como: {df2_path.name}")
+
+# Histograma
+sbn.histplot(df, x="Valor", hue="Sexo", multiple="layer").set(title="Distribuição dos preços das compras por gênero")
+df5_path = save_plot("Histograma - Distribuição dos preços das compras por gênero.png")
+print(f"Histograma de compras por gênero salvo como: {df2_path.name}")
+
+# Razão
+df3 = df3.reset_index()
+df4 = df4.reset_index()
+df7 = df3.merge(df4, how="outer")
+df7['Razão de gasto por usuário'] = df7["Total gasto"] / df7["Total de usuários"] 
+sbn.barplot(data=df7, x="Sexo", y="Razão de gasto por usuário").set(title="Gastos por usuário por gênero")
+
+df7_path = save_plot("Gráfico de barras - Gastos por usuário por gênero.png")
+print(f"Gráfico de barras de gastos por usuário por gênero como {df7_path.name}")
+
+print(f"Todos os arquivos foram salvos em {Path.cwd()}")
